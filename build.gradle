@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+}
+
+group 'com.googlecode.jarjar'
+version '1.4'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile fileTree(dir: "libs", include: ["*.jar"])
+    compile 'org.apache.ant:ant:1.10.12'
+    compile 'org.apache.maven:maven-plugin-api:3.8.5'
+    // 替换为Opcodes.ASM6 (已测试build-tools-30.0.3)
+    compile 'org.ow2.asm:asm:6.0'
+    compile 'org.ow2.asm:asm-commons:6.0'
+    // 不适用于Android版本
+    // 替换为Opcodes.ASM9
+    // compile 'org.ow2.asm:asm:9.3'
+    // compile 'org.ow2.asm:asm-commons:9.3'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+jar {
+    manifest {
+        attributes(
+                'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+                'Main-Class': 'com.tonicsystems.jarjar.Main'
+        )
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+
+task makeJar(type: Jar) {
+    duplicatesStrategy = DuplicatesStrategy.WARN
+    baseName 'jarjar'
+    manifestContentCharset 'utf-8'
+    metadataCharset 'utf-8'
+    //noinspection GroovyAssignabilityCheck
+    manifest {
+        // manifest 文件声明主程序入口
+        attributes "Main-Class": "com.tonicsystems.jarjar.Main"
+    }
+    from('build/classes/java/main/') {
+        delete('build/classes/java/main/android')
+        into('/')
+    }
+    // from('build/resources/main/') {
+    //     into('/resources')
+    // }
+    from('build/resources/main/')
+
+    from project.zipTree('libs/asm-7.3.1.jar')
+    from project.zipTree('libs/asm-commons-7.3.1.jar')
+    from project.zipTree('libs/junit-4.8.1.jar')
+    from project.zipTree('libs/maven-plugin-api.jar')
+
+    into('/')
+
+}
